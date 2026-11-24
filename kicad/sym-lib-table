@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "Silia")(type "KiCad")(uri "${KIPRJMOD}/Silia_Project.kicad_sym")(options "")(descr "Silia 8086 Project Symbols"))
+)

@@ -29,6 +29,13 @@ Silia/
 │   └── Silia_Proteus_Circuit_Design.pdf       # 2-sheet detailed schematic
 ├── proteus/
 │   └── FinalProject.pdsprj                  # Proteus 9.2 project file
+├── kicad/
+│   ├── Silia_8086_ColdStorage.kicad_pro     # KiCad 10.0 project
+│   ├── Silia_8086_ColdStorage.kicad_sch     # Full pin-by-pin schematic (0 ERC errors)
+│   ├── Silia_Project.kicad_sym              # Project symbol library
+│   ├── sym-lib-table
+│   ├── Silia_8086_ColdStorage.pdf           # Vector PDF export
+│   └── erc.rpt                              # KiCad ERC report (0 errors, 0 warnings)
 ├── .gitignore
 └── README.md
 ```
