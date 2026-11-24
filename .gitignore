@@ -1,0 +1,17 @@
+# Proteus temporary, backup, and simulation cache files
+*.pdsbak
+*.DBK
+*.log
+*.workspace
+Last Loaded *.pdsprj
+Backup Of *.pdsprj
+
+# Microsoft Office temporary lock files
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
+# OS / Editor junk
+Thumbs.db
+.DS_Store
+desktop.ini
