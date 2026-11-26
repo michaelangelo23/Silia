@@ -224,7 +224,12 @@ start:
         mov si, offset str_boot2
         call lcd_puts
 
-        ; 4. load / initialize ds12887 rtc & nvram config
+        ; 4. wait past ds12887 200 ms power-on inhibit (~170 ms extra after ~150 ms lcd init),
+        ;    then load / initialize ds12887 rtc & nvram config
+        mov cx, 10
+rtc_por_lp:
+        call delay_long
+        loop rtc_por_lp
         call rtc_init_cfg
         call sync_cool_limits
 
@@ -691,22 +696,29 @@ update_outputs endp
 ;====================================================================
 
 ; al = register index, returns al = data
+; pushf/cli/popf prevents an irq from splitting index write and data read.
 rtc_read_reg proc near
+        pushf
+        cli
         out rtc_idx, al
         nop
         nop
         in al, rtc_data
+        popf
         ret
 rtc_read_reg endp
 
 ; ah = register index, al = data
 rtc_write_reg proc near
+        pushf
+        cli
         xchg al, ah
         out rtc_idx, al
         nop
         nop
         xchg al, ah
         out rtc_data, al
+        popf
         ret
 rtc_write_reg endp
 
