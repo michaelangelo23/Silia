@@ -1,12 +1,206 @@
-ERC report (2026-11-25T04:36:51, Encoding UTF8)
+ERC report (2026-11-26T19:30:07, Encoding UTF8)
 Report includes: Errors, Warnings, Exclusions
 
 ***** Sheet /
+[net_not_bus_member]: Net /D0 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(49.53 mm, 242.57 mm): Bus to wire entry
+    @(49.53 mm, 242.57 mm): Vertical Bus, length 17.78 mm
+[net_not_bus_member]: Net /D4 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(49.53 mm, 252.73 mm): Bus to wire entry
+    @(49.53 mm, 242.57 mm): Vertical Bus, length 17.78 mm
+[net_not_bus_member]: Net /AD1 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(111.76 mm, 27.94 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD5 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(111.76 mm, 38.10 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD9 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(111.76 mm, 48.26 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD10 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(111.76 mm, 50.80 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD12 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(111.76 mm, 55.88 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD13 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(111.76 mm, 58.42 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD15 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(111.76 mm, 63.50 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD0 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 38.10 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD2 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 43.18 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD3 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 45.72 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD4 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 48.26 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD11 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 85.09 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD14 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 92.71 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD6 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 134.62 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD7 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 137.16 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /AD8 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(114.30 mm, 158.75 mm): Bus to wire entry
+    @(114.30 mm, 27.94 mm): Vertical Bus, length 148.59 mm
+[net_not_bus_member]: Net /A0 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(228.60 mm, 35.56 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A1 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(228.60 mm, 38.10 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A3 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(228.60 mm, 43.18 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A5 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(228.60 mm, 48.26 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A9 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(228.60 mm, 77.47 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A14 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(228.60 mm, 90.17 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /D13 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(228.60 mm, 166.37 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A19 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(228.60 mm, 200.66 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A15 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(231.14 mm, 40.64 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A7 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(231.14 mm, 82.55 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A6 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(231.14 mm, 87.63 mm): Bus to wire entry
+    @(231.14 mm, 38.10 mm): Vertical Bus, length 165.10 mm
+[net_not_bus_member]: Net /A4 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(359.41 mm, 50.80 mm): Bus to wire entry
+    @(359.41 mm, 43.18 mm): Vertical Bus, length 81.28 mm
+[net_not_bus_member]: Net /A2 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(359.41 mm, 96.52 mm): Bus to wire entry
+    @(359.41 mm, 43.18 mm): Vertical Bus, length 81.28 mm
+[net_not_bus_member]: Net /A10 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(359.41 mm, 116.84 mm): Bus to wire entry
+    @(359.41 mm, 43.18 mm): Vertical Bus, length 81.28 mm
+[net_not_bus_member]: Net /A11 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(359.41 mm, 119.38 mm): Bus to wire entry
+    @(359.41 mm, 43.18 mm): Vertical Bus, length 81.28 mm
+[net_not_bus_member]: Net /A12 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(359.41 mm, 121.92 mm): Bus to wire entry
+    @(359.41 mm, 43.18 mm): Vertical Bus, length 81.28 mm
+[net_not_bus_member]: Net /D2 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(369.57 mm, 219.71 mm): Bus to wire entry
+    @(369.57 mm, 214.63 mm): Vertical Bus, length 17.78 mm
+[net_not_bus_member]: Net /D5 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(463.55 mm, 50.80 mm): Bus to wire entry
+    @(466.09 mm, 40.64 mm): Vertical Bus, length 73.66 mm
+[net_not_bus_member]: Net /D7 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(463.55 mm, 55.88 mm): Bus to wire entry
+    @(466.09 mm, 40.64 mm): Vertical Bus, length 73.66 mm
+[net_not_bus_member]: Net /D1 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(463.55 mm, 96.52 mm): Bus to wire entry
+    @(466.09 mm, 40.64 mm): Vertical Bus, length 73.66 mm
+[net_not_bus_member]: Net /A13 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(501.65 mm, 73.66 mm): Bus to wire entry
+    @(501.65 mm, 43.18 mm): Vertical Bus, length 80.01 mm
+[net_not_bus_member]: Net /A8 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(501.65 mm, 110.49 mm): Bus to wire entry
+    @(501.65 mm, 43.18 mm): Vertical Bus, length 80.01 mm
+[net_not_bus_member]: Net /D9 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(605.79 mm, 40.64 mm): Bus to wire entry
+    @(608.33 mm, 40.64 mm): Vertical Bus, length 72.39 mm
+[net_not_bus_member]: Net /D11 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(605.79 mm, 45.72 mm): Bus to wire entry
+    @(608.33 mm, 40.64 mm): Vertical Bus, length 72.39 mm
+[net_not_bus_member]: Net /D14 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(605.79 mm, 53.34 mm): Bus to wire entry
+    @(608.33 mm, 40.64 mm): Vertical Bus, length 72.39 mm
+[net_not_bus_member]: Net /D15 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(605.79 mm, 55.88 mm): Bus to wire entry
+    @(608.33 mm, 40.64 mm): Vertical Bus, length 72.39 mm
+[net_not_bus_member]: Net /D8 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(605.79 mm, 92.71 mm): Bus to wire entry
+    @(608.33 mm, 40.64 mm): Vertical Bus, length 72.39 mm
+[net_not_bus_member]: Net /D10 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(605.79 mm, 97.79 mm): Bus to wire entry
+    @(608.33 mm, 40.64 mm): Vertical Bus, length 72.39 mm
+[net_not_bus_member]: Net /D12 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(605.79 mm, 102.87 mm): Bus to wire entry
+    @(608.33 mm, 40.64 mm): Vertical Bus, length 72.39 mm
+[net_not_bus_member]: Net /D3 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(661.67 mm, 278.13 mm): Bus to wire entry
+    @(664.21 mm, 232.41 mm): Vertical Bus, length 104.14 mm
+[net_not_bus_member]: Net /D6 is graphically connected to bus /<NO NET> but is not a member of that bus
+    ; warning
+    @(661.67 mm, 285.75 mm): Bus to wire entry
+    @(664.21 mm, 232.41 mm): Vertical Bus, length 104.14 mm
 
- ** ERC messages: 0  Errors 0  Warnings 0
+ ** ERC messages: 49  Errors 0  Warnings 49
 
  ** Ignored checks:
-    - Global label only appears once in the schematic
-    - Four connection points are joined together
     - SPICE model issue
     - Assigned footprint doesn't match footprint filters

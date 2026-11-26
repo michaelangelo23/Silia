@@ -3,8 +3,19 @@
 *.DBK
 *.log
 *.workspace
+*.chat
 Last Loaded *.pdsprj
 Backup Of *.pdsprj
+proteus/Project Backups/
+proteus/Conversations/
+
+# KiCad local state and backups
+*.kicad_prl
+*-backups/
+
+# Assembler and linker build intermediates
+*.obj
+*.map
 
 # Microsoft Office temporary lock files
 ~$*.docx

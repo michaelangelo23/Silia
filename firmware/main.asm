@@ -1,18 +1,36 @@
 ;====================================================================
 ; Silia 8086 3-Unit Cold-Storage Temperature Monitor & Alarm
-; Processor: Intel 8086 (2 MHz / 5 MHz, Minimum Mode)
-; Compiler:  MASM 6.14 (ml.exe /c /Zd /Zi + link16.exe)
+; Processor: Intel 8086 (Minimum Mode)
+; Clock:     Simulated at 2 MHz; target hardware 5 MHz via 8284A (15 MHz XTAL, 2.5 MHz PCLK)
+;            Software delays sized for 5 MHz worst case.
+; Compiler:  MASM 6.14 (ml.exe /c /Zd /Zi + link16.exe /CODEVIEW)
 ;
-; Fixes applied:
-; 1. Added ivt_resv (1024 bytes) at 00000h-003ffh and moved stack after
-;    code so stack/data/code never overlap the 8086 IVT (prevents
-;    jumping to 0000:01fd).
-; 2. Initialized all 256 IVT entries to isr_dummy before installing 20h-23h,
-;    and restored es=data after IVT setup.
-; 3. Saved/restored ds in all 4 ISRs (ir0..ir3).
-; 4. Fixed keypad circular buffer full check before write, pin_len bounds
-;    guard, LCD mode-change screen clear, Line 4 20-char padding, bounded
-;    RTC UIP polling, ADC signed-overflow clamp, and out_secs reset.
+; Firmware features & fixes:
+; 1. ivt_resv (1024 B) at 00000h-003ffh and stack after code so RAM/
+;    code/stack never overlap the 8086 IVT; all 256 vectors initialized
+;    to isr_dummy before installing IR0..IR3 (20h-23h).
+; 2. Early 8259A PIC init with ICW4=01h (normal EOI matching Specific
+;    EOIs 60h-63h) and OCW1=0FFh -> 0F0h after IVT & peripherals ready.
+; 3. DS12887 RTC 12-hr/binary -> 24-hr BCD safe conversion in
+;    rtc_init_cfg (fixes 92:10:31 PM BCD bug under Proteus AUTOINIT=1)
+;    plus atomic UIP-safe rtc_read_time and NVRAM bounds validation.
+; 4. Immediate LCD refresh via ui_dirty on keypad/door events, instant
+;    update_outputs on ACK (PA5), door open (IR2), and menu reset.
+; 5. Clock-independent ~1-2 s non-blocking "ACCESS DENIED!" hold via
+;    1 Hz tick counter (pin_err_cnt) with queued-key flush.
+; 6. ACK falling-edge + active-alarm guard (ack_prev), word-aligned
+;    out_secs, 25-pass RTC POR wait, 3x 38h LCD reset with >= 15 ms
+;    lead-in, adc_valid pre-first-sample guard, ADC startup dummy reads
+;    plus R1 adc_busy/adc_chan watchdog at 1 Hz kick, NVRAM limit bounds
+;    check (nvram_bounds_check), UIP re-check retry in rtc_read_time,
+;    need_log cause mask, and isr_dummy ISR-checked EOI.
+;    Cooling hysteresis: ON >= thigh, OFF <= max(thigh - 2, tlow) (1 C
+;    integer hold band at thigh - 1; defaults OFF +6/+2/-2 C).
+;    Default bands: Unit 1 +2..+8 C, Unit 2 +1..+4 C (Tlow=+1), Unit 3 -20..0 C.
+; 7. Chronological wrapped ring-buffer indexing in draw_logs, working-
+;    copy editing in mode_edit (-55 <= lo < hi <= 99, # saves+next,
+;    * discards+back), pre-first-ADC stats guard, and exact 20-char
+;    4-line formatting across all 5 LCD modes.
 ;====================================================================
 
         .8086
@@ -26,7 +44,7 @@ ppi1_pc     equ 084h        ; out: pc0=rs, pc1=e, pc3=buzz_en, pc4=grn, pc5=yel,
 ppi1_ctrl   equ 086h        ; 90h -> pa=in, pb=out, pc=out
 
 adc1_port   equ 088h        ; unit 1 (vaccine fridge +2..+8 c)
-adc2_port   equ 0b0h        ; unit 2 (fresh chiller  0..+4 c)
+adc2_port   equ 0b0h        ; unit 2 (fresh chiller +1..+4 c)
 adc3_port   equ 0b8h        ; unit 3 (freezer       -20..0 c, offset -30 c)
 
 pit_c0      equ 090h        ; 2.5 mhz / 25000 (61a8h) = 100.0 hz
@@ -35,7 +53,7 @@ pit_c2      equ 094h        ; 2.5 mhz / 1250  (04e2h) = 2.0 khz  -> buzzer
 pit_ctrl    equ 096h
 
 pic_cmd     equ 098h        ; icw1=13h, ocw2=60h-63h (specific eoi)
-pic_data    equ 09ah        ; icw2=20h, icw4=01h, ocw1=f0h
+pic_data    equ 09ah        ; icw2=20h, icw4=01h, ocw1=ffh->f0h
 
 rtc_idx     equ 0a0h        ; ds12887 index (as)
 rtc_data    equ 0a2h        ; ds12887 data (/cs)
@@ -81,8 +99,8 @@ data    segment public 'data'
 tcurr       db 5, 2, -10
 tmin        db 127, 127, 127
 tmax        db -55, -55, -55
-tcool_on    db 8, 4, 0          ; 1 c hysteresis: on >= thigh
-tcool_off   db 7, 3, -1         ; off <= thigh - 1
+tcool_on    db 8, 4, 0          ; cooling on  when T >= thigh
+tcool_off   db 6, 2, -2         ; cooling off when T <= max(thigh - 2, tlow)
 
 ; per-unit state
 excur_flag  db 0, 0, 0
@@ -91,6 +109,7 @@ alarm_act   db 0, 0, 0
 logged_flg  db 0, 0, 0
 need_log    db 0, 0, 0
 grace_cnt   db 0, 0, 0
+        even                    ; word-align out_secs (16-bit counters)
 out_secs    dw 0, 0, 0
 
 ; config / nvram shadow (18 bytes exact: 0eh..1fh)
@@ -100,14 +119,17 @@ grace_lim   db 10               ; default 10 s grace timer
 user_pin    db '1','2','3','4'
 log_head    db 0
 log_count   db 0
-tlow        db 2, 0, -20
+tlow        db 2, 1, -20        ; default lows: U1=+2, U2=+1, U3=-20 c
 thigh       db 8, 4, 0
 cfg_rsvd    db 0, 0, 0
 
 ; interrupt / adc / ui flags
 adc_chan    db 0
+adc_busy    db 0                ; 1 = adc scan in progress (r1 watchdog)
 flag_1hz    db 0
 ack_silence db 0
+ack_prev    db 20h              ; previous pa5 level (20h = released, 0 = pressed)
+adc_valid   db 0, 0, 0          ; 1 = unit has completed its first adc sample
 relay_mask  db 0
 ppi1_pc_shd db 0                ; shadow register for ppi1 port c
 ui_mode     db ui_live
@@ -115,6 +137,11 @@ prev_ui_md  db ui_live
 stat_page   db 0                ; # key cycles 0..3
 log_view_ix db 0
 edit_unit   db 0
+ui_dirty    db 0                ; 1 = refresh lcd immediately
+door_dirty  db 0                ; 1 = door ir2 fired, update outputs+lcd
+pin_err_cnt db 0                ; 1 hz tick hold for "ACCESS DENIED!"
+edit_lo_tmp db 0                ; uncommitted working copy of tlow[edit_unit]
+edit_hi_tmp db 0                ; uncommitted working copy of thigh[edit_unit]
 
 ; keypad ring buffer (16 bytes)
 key_buf     db 16 dup(0)
@@ -132,13 +159,16 @@ rtc_hr      db 0
 rtc_day     db 1
 rtc_mon     db 1
 
+; factory defaults for the 18-byte config block (mirrors cfg_magic0..cfg_rsvd)
+cfg_dflt    db 'S','I',10,'1','2','3','4',0,0,2,1,-20,8,4,0,0,0,0
+
 ; mm74c922 4-bit code to ascii lookup table
 kpd_map     db '1','2','3',0
             db '4','5','6',0
             db '7','8','9',0
             db '*','0','#',0
 
-; lcd strings (20 chars null-terminated)
+; lcd strings (20 chars null-terminated unless noted)
 str_boot1   db 'SILIA 8086 MONITOR  ',0
 str_boot2   db '3-UNIT COLD STORAGE ',0
 str_pin_hdr db 'ADMIN ACCESS - PIN: ',0
@@ -149,6 +179,8 @@ str_nologs  db 'NO EXCURSION LOGS   ',0
 str_log_ft  db '#:NEXT      *:BACK  ',0
 str_edit_h  db '1/2:LO-/+  3/4:HI-/+',0
 str_edit_f  db '#:SAVE+NEXT  *:BACK ',0
+str_live_ft db '  *PIN #STAT',0         ; 12 chars after "HH:MM:SS" = 20
+str_nosamp  db '---C/---C',0            ; 9 chars for pre-first-ADC stats
 str_blank20 db '                    ',0
 
 ; unit labels & adc ports
@@ -174,7 +206,17 @@ start:
         mov ds, ax
         mov es, ax
 
-        ; 1. wait briefly for power-on settle, then initialize 8255a #1 and #2
+        ; 1a. initialize 8259a pic early (all irqs masked) to avoid pre-init pit warnings
+        mov al, 13h             ; icw1: edge, single, icw4 needed
+        out pic_cmd, al
+        mov al, 20h             ; icw2: vector base 20h (ir0..3 -> 20h..23h)
+        out pic_data, al
+        mov al, 01h             ; icw4: 8086 mode, normal eoi (isrs send specific eoi)
+        out pic_data, al
+        mov al, 0ffh            ; ocw1: mask all irqs until ivt & peripherals are ready
+        out pic_data, al
+
+        ; 1b. wait briefly for power-on settle, then initialize 8255a #1 and #2
         call delay_short
         mov al, 90h
         out ppi1_ctrl, al
@@ -213,7 +255,7 @@ start:
         mov al, 04h
         out pit_c2, al
 
-        ; 3. initialize 20x4 lcd (lm044l)
+        ; 3. initialize 20x4 lcd (lm044l) and show boot splash
         call lcd_init
         mov al, 080h
         call lcd_cmd
@@ -224,13 +266,13 @@ start:
         mov si, offset str_boot2
         call lcd_puts
 
-        ; 4. wait past ds12887 200 ms power-on inhibit (~170 ms extra after ~150 ms lcd init),
-        ;    then load / initialize ds12887 rtc & nvram config
-        mov cx, 10
+        ; 4. wait past ds12887 200 ms power-on inhibit, then init rtc (24-hr bcd) & nvram
+        mov cx, 25              ; 25 x delay_long >= 170 ms + lcd init > 200 ms at 5 mhz
 rtc_por_lp:
         call delay_long
         loop rtc_por_lp
         call rtc_init_cfg
+        call rtc_read_time
         call sync_cool_limits
 
         ; 5. install safe default handler on all 256 ivt vectors, then 20h-23h
@@ -258,21 +300,23 @@ ivt_fill_lp:
         mov ax, data
         mov es, ax
 
-        ; 6. initialize 8259a pic (single, edge-triggered, 8086 mode)
-        mov al, 13h             ; icw1: edge, single, icw4 needed
-        out pic_cmd, al
-        mov al, 20h             ; icw2: vector base 20h (ir0..3 -> 20h..23h)
-        out pic_data, al
-        mov al, 03h             ; icw4: 8086 mode, auto-eoi (isr bit never sticks)
-        out pic_data, al
+        ; 5b. dummy-read all 3 adc0804 so no stuck-low /intr holds ir0 high
+        in al, adc1_port
+        in al, adc2_port
+        in al, adc3_port
+
+        ; 6. unmask ir0..ir3 on 8259a pic (ir4..ir7 remain masked)
         mov al, 0f0h            ; ocw1: unmask ir0..ir3, mask ir4..ir7
         out pic_data, al
 
-        ; initial door & adc kick
+        ; initial door read, initial LED/relay output state, and first adc kick
         in al, ppi2_pa
         and al, 07h
         call update_doors
+        call update_relays
+        call update_outputs
         mov adc_chan, 0
+        mov adc_busy, 1
         out adc1_port, al
 
         sti                     ; enable cpu interrupts
@@ -281,27 +325,75 @@ ivt_fill_lp:
 ; FOREGROUND SUPERLOOP
 ;--------------------------------------------------------------------
 main_loop:
-        ; check ack push-button (pa5 active low)
+        ; 1. ack push-button (pa5 active low): act only on a falling edge while
+        ;    an alarm is latched, so a latched/held sw1 cannot mask future alarms
         in al, ppi1_pa
-        test al, 20h
-        jnz skip_ack
+        and al, 20h
+        mov ah, ack_prev
+        mov ack_prev, al
+        or al, al
+        jnz skip_ack            ; released -> no event
+        or ah, ah
+        jz skip_ack             ; was already low (held/latched) -> no edge
+        mov al, alarm_act[0]
+        or al, alarm_act[1]
+        or al, alarm_act[2]
+        jz skip_ack             ; no latched alarm -> ignore press
+        cmp ack_silence, 0
+        jne skip_ack
         mov ack_silence, 1
+        call update_outputs     ; silence buzzer immediately on ack press
 skip_ack:
 
-        ; process pending keypad events
+        ; 2. handle immediate door-open irq response
+        cmp door_dirty, 0
+        je skip_door_imm
+        mov door_dirty, 0
+        call update_outputs     ; update yellow + per-unit led immediately
+        mov ui_dirty, 1         ; show DOR status on lcd immediately
+skip_door_imm:
+
+        ; 3. process pending keypad events (sets ui_dirty on any ui change)
         call process_keypad
 
-        ; run 1 hz periodic tasks (adc scan, relays, leds, nvram logging, lcd)
+        ; 4. run 1 hz periodic tasks (pin-error timer, adc scan, relays, leds, logs, lcd)
         cmp flag_1hz, 0
-        je main_loop
+        je chk_ui_dirty
         mov flag_1hz, 0
 
+        ; decrement non-blocking "ACCESS DENIED!" display hold (~1-2 s)
+        cmp pin_err_cnt, 0
+        je no_pin_err_tick
+        dec pin_err_cnt
+        jnz no_pin_err_tick
+        mov ui_mode, ui_live
+no_pin_err_tick:
+
+        pushf
+        cli                     ; keep watchdog + adc_chan reset + kick atomic vs ir0 isr
+        mov al, adc_busy
+        or al, adc_chan
+        jz adc_kick_ok          ; previous scan completed cleanly
+        in al, adc1_port        ; r1 watchdog: dummy-read all 3 adcs to release stuck /intr
+        in al, adc2_port
+        in al, adc3_port
+adc_kick_ok:
         mov adc_chan, 0
+        mov adc_busy, 1
         out adc1_port, al       ; kick adc scan safely outside ir1 isr
+        popf
         call update_relays
         call update_outputs
         call process_nvram_logs
         call rtc_read_time
+        mov ui_dirty, 0
+        call refresh_lcd
+        jmp main_loop
+
+chk_ui_dirty:
+        cmp ui_dirty, 0
+        je main_loop
+        mov ui_dirty, 0
         call refresh_lcd
         jmp main_loop
 
@@ -310,10 +402,16 @@ skip_ack:
 ;====================================================================
 
 isr_dummy proc far
-        ; failsafe: a corrupted inta vector byte lands here; release the pic
+        ; failsafe: an unexpected vector lands here; release the pic
         push ax
-        mov al, 20h             ; non-specific eoi
+        mov al, 0bh             ; ocw3: next read of pic_cmd returns isr
         out pic_cmd, al
+        in al, pic_cmd
+        or al, al
+        jz dummy_ret            ; nothing in service (spurious ir7 / non-pic vector)
+        mov al, 20h             ; non-specific eoi only if a real irq is in service
+        out pic_cmd, al
+dummy_ret:
         pop ax
         iret
 isr_dummy endp
@@ -355,6 +453,12 @@ adc_clamp_pos:
         mov al, 127
 adc_store:
         mov tcurr[bx], al
+        cmp adc_valid[bx], 0
+        jne adc_have
+        mov adc_valid[bx], 1    ; first sample seeds tmin/tmax
+        mov tmin[bx], al
+        mov tmax[bx], al
+adc_have:
 
         ; update tmin (signed)
         cmp al, tmin[bx]
@@ -388,6 +492,7 @@ next_adc:
 
 adc_done:
         mov adc_chan, 0
+        mov adc_busy, 0         ; scan finished cleanly
 adc_eoi:
         mov al, 60h             ; specific eoi for ir0
         out pic_cmd, al
@@ -415,12 +520,12 @@ isr_ir1_1hz proc far
 
         mov flag_1hz, 1
 
-        ; refresh door comparator inputs (handles multi-door states)
+        ; refresh door comparator inputs (handles multi-door & door-close states)
         in al, ppi2_pa
         and al, 07h
         call update_doors
 
-        ; update per-unit grace & out-of-range counters
+        ; update per-unit grace & alarm latch state
         xor bx, bx
         mov cx, 3
 tick_loop:
@@ -451,13 +556,22 @@ already_latched:
         mov alarm_act[bx], 1
         cmp logged_flg[bx], 0
         jne tick_next
-        mov need_log[bx], 1
+        mov al, 0               ; need_log = cause mask (10h tmp, 20h dor)
+        cmp excur_flag[bx], 0
+        je nl_cause_dor
+        or al, 10h
+nl_cause_dor:
+        cmp door_open[bx], 0
+        je nl_cause_set
+        or al, 20h
+nl_cause_set:
+        mov need_log[bx], al
 
 tick_next:
         inc bx
         loop tick_loop
 
-        ; increment word out_secs properly for each faulted unit
+        ; increment word out_secs (clamped at 5999 = 99:59) for each faulted unit
         xor bx, bx
         xor si, si
         mov cx, 3
@@ -465,6 +579,8 @@ outsec_lp:
         mov al, excur_flag[bx]
         or al, door_open[bx]
         jz outsec_nxt
+        cmp out_secs[si], 5999
+        jae outsec_nxt
         inc out_secs[si]
 outsec_nxt:
         inc bx
@@ -496,6 +612,7 @@ isr_ir2_door proc far
         in al, ppi2_pa
         and al, 07h
         call update_doors
+        mov door_dirty, 1
 
         mov al, 62h             ; specific eoi for ir2
         out pic_cmd, al
@@ -552,7 +669,9 @@ isr_ir3_keypad endp
 ; CONTROL & LOGIC ROUTINES
 ;====================================================================
 
-; sync 1 c hysteresis cooling thresholds from thigh[0..2]
+; sync cooling thresholds from thigh/tlow:
+;   tcool_on  = thigh                (on  when T >= thigh)
+;   tcool_off = max(thigh - 2, tlow) (off when T <= tcool_off; 1 c hold band at thigh - 1)
 sync_cool_limits proc near
         push ax
         push bx
@@ -560,7 +679,11 @@ sync_cool_limits proc near
 scl_lp:
         mov al, thigh[bx]
         mov tcool_on[bx], al
-        dec al
+        sub al, 2
+        cmp al, tlow[bx]
+        jge scl_off_ok          ; signed compare: clamp so tcool_off >= tlow
+        mov al, tlow[bx]
+scl_off_ok:
         mov tcool_off[bx], al
         inc bx
         cmp bx, 3
@@ -589,7 +712,7 @@ update_doors proc near
         ret
 update_doors endp
 
-; 1 c hysteresis cooling relay control on ppi2_pb (pb0..pb2)
+; hysteresis cooling relay control on ppi2_pb (pb0..pb2)
 update_relays proc near
         push ax
         push bx
@@ -603,13 +726,13 @@ rly_loop:
         mov al, tcurr[bx]
         cmp al, tcool_on[bx]
         jl rly_chk_off
-        or ah, cl               ; turn cooling on
+        or ah, cl               ; turn cooling on (>= thigh)
         jmp rly_next
 rly_chk_off:
         cmp al, tcool_off[bx]
         jg rly_next
         not cl
-        and ah, cl              ; turn cooling off
+        and ah, cl              ; turn cooling off (<= max(thigh - 2, tlow))
         not cl
 rly_next:
         shl cl, 1
@@ -737,9 +860,45 @@ wait_uip_lp:
         ret
 rtc_wait_uip endp
 
+; convert binary byte in al (0..99) to packed bcd in al (preserves ah, bx, cx)
+bin_to_bcd proc near
+        push bx
+        push cx
+        mov ch, ah
+        cmp al, 99
+        jbe b2b_ok
+        mov al, 99
+b2b_ok:
+        xor ah, ah
+        mov bl, 10
+        div bl                  ; al = tens, ah = ones
+        mov cl, 4
+        shl al, cl
+        or al, ah
+        mov ah, ch
+        pop cx
+        pop bx
+        ret
+bin_to_bcd endp
+
+; read rtc time/date registers atomically inside uip-clear guard window
 rtc_read_time proc near
         push ax
+        push cx
+        mov cx, 4               ; bounded retry if uip re-asserts before cli
+rrt_retry:
         call rtc_wait_uip
+        pushf
+        cli
+        mov al, 0ah
+        call rtc_read_reg
+        test al, 80h
+        jz rrt_read
+        popf
+        loop rrt_retry
+        pushf
+        cli                     ; retries exhausted: read anyway (bounded)
+rrt_read:
         mov al, 00h
         call rtc_read_reg
         mov rtc_sec, al
@@ -755,24 +914,135 @@ rtc_read_time proc near
         mov al, 08h
         call rtc_read_reg
         mov rtc_mon, al
+        popf
+        pop cx
         pop ax
         ret
 rtc_read_time endp
 
-; load 18-byte config from nvram (0eh..1fh) or write defaults if uninitialized
+; normalize ds12887 time to 24-hr bcd (handling 12-hr pm/am and binary modes),
+; then load 18-byte config from nvram (0eh..1fh) or write defaults if uninitialized
 rtc_init_cfg proc near
         push ax
         push bx
         push cx
 
-        ; enable oscillator & 24-hr bcd mode (reg 0ah=20h, reg 0bh=02h)
+        ; enable oscillator (reg 0ah = 20h) and wait until uip == 0
         mov ah, 0ah
         mov al, 20h
         call rtc_write_reg
+        call rtc_wait_uip
+
+        ; read existing reg 0bh (bit 2 = DM: 0=BCD/1=BIN, bit 1 = 24/12: 0=12h/1=24h)
+        mov al, 0bh
+        call rtc_read_reg
+        mov bl, al
+
+        ; set SET=1 (bit 7) to inhibit updates during safe mode conversion
+        or al, 80h
+        mov ah, 0bh
+        call rtc_write_reg
+
+        ; check whether rtc started in binary mode (DM=1) or bcd mode (DM=0)
+        test bl, 04h
+        jnz rtc_conv_bin
+
+        ; --- BCD mode (DM=0; Proteus AUTOINIT=1 default) ---
+        mov al, 04h
+        call rtc_read_reg
+        test bl, 02h            ; already 24-hr mode?
+        jz rtc_bcd_12h
+        ; already 24-hr BCD: convert only if stray PM bit (bit 7) is set
+        test al, 80h
+        jz rtc_mode_24bcd
+        jmp rtc_bcd_pm
+
+rtc_bcd_12h:
+        test al, 80h            ; bit 7 = PM flag in 12-hr mode
+        jnz rtc_bcd_pm
+        ; 12-hr AM BCD: 12h (12 AM) -> 00h; 01h..11h unchanged
+        cmp al, 12h
+        jne rtc_mode_24bcd
+        xor al, al
+        jmp rtc_wr_hr
+
+rtc_bcd_pm:
+        ; 12-hr PM BCD: 92h (12 PM) -> 12h; 81h..91h (1..11 PM) -> 13h..23h via DAA
+        and al, 7fh
+        cmp al, 12h
+        je rtc_wr_hr
+        clc
+        add al, 12h
+        daa
+rtc_wr_hr:
+        mov ah, 04h
+        call rtc_write_reg
+        jmp rtc_mode_24bcd
+
+rtc_conv_bin:
+        ; --- Binary mode (DM=1): convert sec/min/day/mon/yr and hr to 24-hr BCD ---
+        mov al, 00h
+        call rtc_read_reg
+        call bin_to_bcd
+        mov ah, 00h
+        call rtc_write_reg
+
+        mov al, 02h
+        call rtc_read_reg
+        call bin_to_bcd
+        mov ah, 02h
+        call rtc_write_reg
+
+        mov al, 07h
+        call rtc_read_reg
+        call bin_to_bcd
+        mov ah, 07h
+        call rtc_write_reg
+
+        mov al, 08h
+        call rtc_read_reg
+        call bin_to_bcd
+        mov ah, 08h
+        call rtc_write_reg
+
+        mov al, 09h
+        call rtc_read_reg
+        call bin_to_bcd
+        mov ah, 09h
+        call rtc_write_reg
+
+        ; convert hours (reg 04h) from binary (12-hr or 24-hr) to 24-hr BCD
+        mov al, 04h
+        call rtc_read_reg
+        test bl, 02h            ; already 24-hr binary?
+        jz rtc_bin_12h
+        test al, 80h
+        jz rtc_bin_hr_bcd
+        jmp rtc_bin_pm
+rtc_bin_12h:
+        test al, 80h
+        jnz rtc_bin_pm
+        cmp al, 12
+        jne rtc_bin_hr_bcd
+        xor al, al
+        jmp rtc_bin_hr_bcd
+rtc_bin_pm:
+        and al, 7fh
+        cmp al, 12
+        je rtc_bin_hr_bcd
+        add al, 12
+rtc_bin_hr_bcd:
+        call bin_to_bcd
+        mov ah, 04h
+        call rtc_write_reg
+
+rtc_mode_24bcd:
+        ; commit 24-hr BCD mode and clear SET=0 (reg 0bh = 02h)
         mov ah, 0bh
         mov al, 02h
         call rtc_write_reg
 
+        ; check nvram magic ('S','I') at 0eh..0fh
         mov al, nvram_cfg
         call rtc_read_reg
         cmp al, 'S'
@@ -792,7 +1062,27 @@ cfg_rd_lp:
         mov cfg_magic0[bx], al
         inc bx
         loop cfg_rd_lp
-        jmp cfg_done
+
+        ; sanitize loaded ring-buffer indices
+        cmp log_head, max_logs
+        jb cfg_hd_ok
+        mov log_head, 0
+cfg_hd_ok:
+        cmp log_count, max_logs
+        jbe cfg_chk
+        mov log_count, max_logs
+cfg_chk:
+        call nvram_bounds_check
+        jnc cfg_done
+        ; corrupt limits/grace: restore factory defaults into ram, then rewrite nvram
+        push si
+        push di
+        mov si, offset cfg_dflt
+        mov di, offset cfg_magic0
+        mov cx, 18
+        rep movsb
+        pop di
+        pop si
 
 cfg_defaults:
         call rtc_save_cfg
@@ -802,6 +1092,33 @@ cfg_done:
         pop ax
         ret
 rtc_init_cfg endp
+
+; validate loaded limits: -55 <= tlow < thigh <= 99 and grace_lim >= 1
+; returns cf=0 valid, cf=1 invalid
+nvram_bounds_check proc near
+        push bx
+        cmp grace_lim, 1
+        jb nbc_bad
+        xor bx, bx
+nbc_lp:
+        mov al, tlow[bx]
+        cmp al, -55
+        jl nbc_bad
+        cmp al, thigh[bx]
+        jge nbc_bad
+        cmp thigh[bx], 99
+        jg nbc_bad
+        inc bx
+        cmp bx, 3
+        jb nbc_lp
+        clc
+        pop bx
+        ret
+nbc_bad:
+        stc
+        pop bx
+        ret
+nvram_bounds_check endp
 
 rtc_save_cfg proc near
         push ax
@@ -834,8 +1151,12 @@ nlog_loop:
         cmp need_log[bx], 0
         je nlog_next
 
+        pushf
+        cli                     ; atomic claim vs isr_ir1_1hz (no double-log)
+        mov dh, need_log[bx]    ; dh = cause mask captured at latch time
         mov need_log[bx], 0
         mov logged_flg[bx], 1
+        popf
 
         call rtc_read_time
 
@@ -849,14 +1170,7 @@ nlog_loop:
         ; byte 0: unit(1..3) in low nibble, fault flags in high nibble
         mov al, bl
         inc al
-        cmp excur_flag[bx], 0
-        je nl_no_temp
-        or al, 10h
-nl_no_temp:
-        cmp door_open[bx], 0
-        je nl_wr0
-        or al, 20h
-nl_wr0:
+        or al, dh               ; cause flags captured when alarm latched
         mov ah, dl
         call rtc_write_reg
 
@@ -928,6 +1242,18 @@ process_nvram_logs endp
 ; KEYPAD & MENU HANDLER
 ;====================================================================
 
+; flush any queued keys atomically
+key_flush proc near
+        push ax
+        pushf
+        cli
+        mov al, key_head
+        mov key_tail, al
+        popf
+        pop ax
+        ret
+key_flush endp
+
 ; returns zf=1 if empty, else zf=0 and al=ascii key
 key_pop proc near
         push bx
@@ -956,7 +1282,7 @@ process_keypad proc near
 
 pk_next:
         call key_pop
-        jz pk_done
+        jz pk_done_j
 
         cmp ui_mode, ui_live
         je mode_live
@@ -968,20 +1294,29 @@ pk_next:
         je mode_logs
         jmp mode_edit
 
+pk_done_j:
+        jmp pk_done
+
 mode_live:
         cmp al, '*'
         jne chk_hash
         mov ui_mode, ui_pin
         mov pin_len, 0
+        mov pin_err_cnt, 0
+        mov ui_dirty, 1
         jmp pk_next
 chk_hash:
         cmp al, '#'
         jne pk_next
         inc stat_page
         and stat_page, 03h
+        mov ui_dirty, 1
         jmp pk_next
 
 mode_pin:
+        ; ignore/drop keys while "ACCESS DENIED!" hold is active
+        cmp pin_err_cnt, 0
+        jne pk_next
         cmp al, '*'
         je pin_cancel
         cmp al, '0'
@@ -995,6 +1330,7 @@ mode_pin:
         mov pin_buf[bx], al
         inc bl
         mov pin_len, bl
+        mov ui_dirty, 1
         cmp bl, 4
         jb pk_next
 
@@ -1012,15 +1348,20 @@ mode_pin:
         cmp al, user_pin[3]
         jne pin_fail
         mov ui_mode, ui_menu
+        mov ui_dirty, 1
         jmp pk_next
 pin_fail:
-        mov al, 01h
-        call lcd_cmd
-        mov si, offset str_pin_bad
-        call lcd_puts
-        call delay_long
+        ; hold "ACCESS DENIED!" visibly for ~1-2 s via 1 hz ticks (non-blocking)
+        mov pin_len, 0
+        mov pin_err_cnt, 2
+        call key_flush
+        mov ui_dirty, 1
+        jmp pk_next
 pin_cancel:
+        mov pin_len, 0
+        mov pin_err_cnt, 0
         mov ui_mode, ui_live
+        mov ui_dirty, 1
         jmp pk_next
 
 mode_menu:
@@ -1036,12 +1377,15 @@ mode_menu:
 menu_logs:
         mov log_view_ix, 0
         mov ui_mode, ui_logs
+        mov ui_dirty, 1
         jmp pk_next
 menu_clr:
-        mov ack_silence, 1
         mov log_head, 0
         mov log_count, 0
         call rtc_save_cfg
+        pushf
+        cli
+        mov ack_silence, 1
         xor bx, bx
         xor si, si
 clr_lp:
@@ -1057,31 +1401,44 @@ clr_lp:
         add si, 2
         cmp bx, 3
         jb clr_lp
+        popf
+        call update_outputs     ; clear alarm leds & buzzer immediately
         mov ui_mode, ui_live
+        mov ui_dirty, 1
         jmp pk_next
 menu_edit:
         mov edit_unit, 0
+        mov al, tlow[0]
+        mov edit_lo_tmp, al
+        mov al, thigh[0]
+        mov edit_hi_tmp, al
         mov ui_mode, ui_edit
+        mov ui_dirty, 1
         jmp pk_next
 menu_exit:
         mov ui_mode, ui_live
+        mov ui_dirty, 1
         jmp pk_next
 
 mode_logs:
         cmp al, '*'
         je logs_exit
         cmp al, '#'
-        jne pk_next
+        jne ml_next
         cmp log_count, 0
-        je pk_next
+        je ml_next
         inc log_view_ix
         mov al, log_view_ix
         cmp al, log_count
-        jb pk_next
+        jb ml_dirty
         mov log_view_ix, 0
+ml_dirty:
+        mov ui_dirty, 1
+ml_next:
         jmp pk_next
 logs_exit:
         mov ui_mode, ui_menu
+        mov ui_dirty, 1
         jmp pk_next
 
 mode_edit:
@@ -1093,35 +1450,73 @@ mode_edit:
         je edit_save_nxt
         cmp al, '1'
         jne ed_chk2
-        dec tlow[bx]
-        jmp pk_next
+        mov al, edit_lo_tmp
+        cmp al, -55
+        jle ed_next
+        dec al
+        mov edit_lo_tmp, al
+        mov ui_dirty, 1
+        jmp ed_next
 ed_chk2:
         cmp al, '2'
         jne ed_chk3
-        inc tlow[bx]
-        jmp pk_next
+        mov al, edit_lo_tmp
+        inc al
+        cmp al, edit_hi_tmp
+        jge ed_next
+        mov edit_lo_tmp, al
+        mov ui_dirty, 1
+        jmp ed_next
 ed_chk3:
         cmp al, '3'
         jne ed_chk4
-        dec thigh[bx]
-        jmp pk_next
+        mov al, edit_hi_tmp
+        dec al
+        cmp al, edit_lo_tmp
+        jle ed_next
+        mov edit_hi_tmp, al
+        mov ui_dirty, 1
+        jmp ed_next
 ed_chk4:
         cmp al, '4'
-        jne pk_next
-        inc thigh[bx]
-        jmp pk_next
+        jne ed_next
+        mov al, edit_hi_tmp
+        cmp al, 99
+        jge ed_next
+        inc al
+        mov edit_hi_tmp, al
+        mov ui_dirty, 1
+        jmp ed_next
 edit_save_nxt:
+        ; commit current unit limits atomically, save to nvram, advance unit
+        pushf
+        cli
+        mov al, edit_lo_tmp
+        mov tlow[bx], al
+        mov al, edit_hi_tmp
+        mov thigh[bx], al
         call sync_cool_limits
+        popf
         call rtc_save_cfg
+        call update_relays
         inc edit_unit
         cmp edit_unit, 3
-        jb pk_next
+        jb ed_load_cur
         mov edit_unit, 0
-        jmp pk_next
+ed_load_cur:
+        xor bh, bh
+        mov bl, edit_unit
+        mov al, tlow[bx]
+        mov edit_lo_tmp, al
+        mov al, thigh[bx]
+        mov edit_hi_tmp, al
+        mov ui_dirty, 1
+        jmp ed_next
 edit_back:
-        call sync_cool_limits
-        call rtc_save_cfg
+        ; discard uncommitted edits on current unit and return to menu
         mov ui_mode, ui_menu
+        mov ui_dirty, 1
+ed_next:
         jmp pk_next
 
 pk_done:
@@ -1215,11 +1610,19 @@ lp_end:
 lcd_puts endp
 
 lcd_init proc near
+        ; >= 15 ms after vcc (3 x delay_long = ~20 ms at 5 mhz), then 3 x 38h.
+        ; lcd_cmd waits only delay_short after 38h, so explicit delay_long
+        ; calls provide the > 4.1 ms (after #1) and > 100 us (after #2) gaps.
         call delay_long
-        mov al, 38h             ; 8-bit, 2+ lines, 5x8
+        call delay_long
+        call delay_long
+        mov al, 38h             ; function set #1: 8-bit
         call lcd_cmd
-        call delay_long
-        mov al, 38h
+        call delay_long         ; > 4.1 ms (6.8 ms at 5 mhz)
+        mov al, 38h             ; function set #2
+        call lcd_cmd
+        call delay_long         ; > 100 us
+        mov al, 38h             ; function set #3: 8-bit, 2+ lines, 5x8
         call lcd_cmd
         mov al, 0ch             ; display on, cursor off
         call lcd_cmd
@@ -1334,10 +1737,15 @@ chk_m_pin:
         jmp draw_edit
 
 draw_pin:
+        cmp pin_err_cnt, 0
+        jne dp_denied
+
+        ; line 1 (20 chars): "ADMIN ACCESS - PIN: "
         mov al, 080h
         call lcd_cmd
         mov si, offset str_pin_hdr
         call lcd_puts
+        ; line 2 (20 chars): "****                " / "____                "
         mov al, 0c0h
         call lcd_cmd
         mov cl, 4
@@ -1358,9 +1766,34 @@ dp_out:
 dp_pad: mov al, ' '
         call lcd_data
         loop dp_pad
+        jmp dp_clr34
+
+dp_denied:
+        ; line 1 (20 chars): "ACCESS DENIED!      "
+        mov al, 080h
+        call lcd_cmd
+        mov si, offset str_pin_bad
+        call lcd_puts
+        ; line 2 (20 chars): blank
+        mov al, 0c0h
+        call lcd_cmd
+        mov si, offset str_blank20
+        call lcd_puts
+
+dp_clr34:
+        ; lines 3 & 4 (20 chars each): blank
+        mov al, 094h
+        call lcd_cmd
+        mov si, offset str_blank20
+        call lcd_puts
+        mov al, 0d4h
+        call lcd_cmd
+        mov si, offset str_blank20
+        call lcd_puts
         jmp lcd_done
 
 draw_menu:
+        ; lines 1-2: menu options; lines 3-4: blank (all 20 chars)
         mov al, 080h
         call lcd_cmd
         mov si, offset str_menu1
@@ -1368,6 +1801,14 @@ draw_menu:
         mov al, 0c0h
         call lcd_cmd
         mov si, offset str_menu2
+        call lcd_puts
+        mov al, 094h
+        call lcd_cmd
+        mov si, offset str_blank20
+        call lcd_puts
+        mov al, 0d4h
+        call lcd_cmd
+        mov si, offset str_blank20
         call lcd_puts
         jmp lcd_done
 
@@ -1378,10 +1819,28 @@ draw_logs:
         jne dl_has
         mov si, offset str_nologs
         call lcd_puts
+        mov al, 0c0h
+        call lcd_cmd
+        mov si, offset str_blank20
+        call lcd_puts
         jmp dl_footer
 dl_has:
-        ; read 8-byte log at log_view_ix
+        ; clamp log_view_ix < log_count
         mov al, log_view_ix
+        cmp al, log_count
+        jb dl_ix_ok
+        xor al, al
+        mov log_view_ix, al
+dl_ix_ok:
+        ; map chronological index (L01=oldest .. Lnn=newest) to physical nvram slot
+        cmp log_count, max_logs
+        jb dl_slot_ok           ; not wrapped: oldest is slot 0
+        add al, log_head        ; wrapped: oldest is slot log_head
+        cmp al, max_logs
+        jb dl_slot_ok
+        sub al, max_logs
+dl_slot_ok:
+        ; read 8-byte log from nvram slot al
         mov cl, 3
         shl al, cl
         add al, nvram_log
@@ -1396,6 +1855,7 @@ dl_rd:
         cmp bx, 8
         jb dl_rd
 
+        ; line 1 (20 chars): "L01 U1 +05C 12:34:56"
         mov al, 'L'
         call lcd_data
         mov al, log_view_ix
@@ -1422,18 +1882,79 @@ dl_rd:
         call lcd_data
         mov al, log_rec[3]      ; min
         call lcd_put_bcd2
-        mov al, ' '
+        mov al, ':'
         call lcd_data
-        mov al, ' '
-        call lcd_data
-dl_footer:
+        mov al, log_rec[4]      ; sec
+        call lcd_put_bcd2
+
+        ; line 2 (20 chars): "MM/DD  TMP DOR      "
         mov al, 0c0h
+        call lcd_cmd
+        mov al, log_rec[5]      ; mon
+        call lcd_put_bcd2
+        mov al, '/'
+        call lcd_data
+        mov al, log_rec[6]      ; day
+        call lcd_put_bcd2
+        mov al, ' '
+        call lcd_data
+        mov al, ' '
+        call lcd_data
+        test log_rec[0], 10h
+        jz dl_no_tmp
+        mov al, 'T'
+        call lcd_data
+        mov al, 'M'
+        call lcd_data
+        mov al, 'P'
+        call lcd_data
+        jmp dl_chk_dor
+dl_no_tmp:
+        mov al, '-'
+        call lcd_data
+        mov al, '-'
+        call lcd_data
+        mov al, '-'
+        call lcd_data
+dl_chk_dor:
+        mov al, ' '
+        call lcd_data
+        test log_rec[0], 20h
+        jz dl_no_dor
+        mov al, 'D'
+        call lcd_data
+        mov al, 'O'
+        call lcd_data
+        mov al, 'R'
+        call lcd_data
+        jmp dl_l2_pad
+dl_no_dor:
+        mov al, '-'
+        call lcd_data
+        mov al, '-'
+        call lcd_data
+        mov al, '-'
+        call lcd_data
+dl_l2_pad:
+        mov cx, 6
+dl_p2:  mov al, ' '
+        call lcd_data
+        loop dl_p2
+
+dl_footer:
+        ; line 3 (20 chars): blank; line 4 (20 chars): footer
+        mov al, 094h
+        call lcd_cmd
+        mov si, offset str_blank20
+        call lcd_puts
+        mov al, 0d4h
         call lcd_cmd
         mov si, offset str_log_ft
         call lcd_puts
         jmp lcd_done
 
 draw_edit:
+        ; line 1 (20 chars): "U1 LO:+02C HI:+08C  "
         mov al, 080h
         call lcd_cmd
         xor bh, bh
@@ -1451,7 +1972,7 @@ draw_edit:
         call lcd_data
         mov al, ':'
         call lcd_data
-        mov al, tlow[bx]
+        mov al, edit_lo_tmp
         call lcd_put_temp
         mov al, ' '
         call lcd_data
@@ -1461,29 +1982,36 @@ draw_edit:
         call lcd_data
         mov al, ':'
         call lcd_data
-        mov al, thigh[bx]
+        mov al, edit_hi_tmp
         call lcd_put_temp
         mov al, ' '
         call lcd_data
         call lcd_data
+        ; line 2 (20 chars): "1/2:LO-/+  3/4:HI-/+"
         mov al, 0c0h
         call lcd_cmd
         mov si, offset str_edit_h
         call lcd_puts
+        ; line 3 (20 chars): "#:SAVE+NEXT  *:BACK "
         mov al, 094h
         call lcd_cmd
         mov si, offset str_edit_f
         call lcd_puts
+        ; line 4 (20 chars): blank
+        mov al, 0d4h
+        call lcd_cmd
+        mov si, offset str_blank20
+        call lcd_puts
         jmp lcd_done
 
 draw_live:
-        ; lines 1-3: u1/u2/u3 live c, status, relay
+        ; lines 1-3 (20 chars each): "Ux:+xxC ALM R:ON    "
         xor bx, bx
 dlv_lp:
         mov al, line_addrs[bx]
         call lcd_cmd
 
-        ; "ux:"
+        ; "Ux:" (3 chars)
         mov al, 'U'
         call lcd_data
         mov al, bl
@@ -1492,13 +2020,13 @@ dlv_lp:
         mov al, ':'
         call lcd_data
 
-        ; "+xxc "
+        ; "+xxC " (5 chars -> 8)
         mov al, tcurr[bx]
         call lcd_put_temp
         mov al, ' '
         call lcd_data
 
-        ; status: alm / dor / exc / ok
+        ; status: ALM / DOR / EXC / OK  (3 chars -> 11)
         cmp alarm_act[bx], 0
         je dlv_chk_dor
         mov al, 'A'
@@ -1537,6 +2065,7 @@ dlv_ok:
         call lcd_data
 
 dlv_rly:
+        ; " R:ON " or " R:OFF" (6 chars -> 17)
         mov al, ' '
         call lcd_data
         mov al, 'R'
@@ -1563,22 +2092,23 @@ dlv_roff:
         mov al, 'F'
         call lcd_data
 dlv_pad:
+        ; 3 trailing spaces (3 chars -> 20 exact)
         mov al, ' '
         call lcd_data
-        mov al, ' '
+        call lcd_data
         call lcd_data
 
         inc bx
         cmp bx, 3
         jb dlv_lp
 
-        ; line 4: cycles between clock/alerts (page 0) and unit 1-3 stats (pages 1-3)
+        ; line 4 (20 chars): page 0 = clock/prompts, pages 1-3 = unit 1-3 stats
         mov al, 0d4h
         call lcd_cmd
         cmp stat_page, 0
         jne dlv_stat
 
-        ; page 0: "hh:mm:ss  *pin #stat"
+        ; page 0 (20 chars): "HH:MM:SS  *PIN #STAT"
         mov al, rtc_hr
         call lcd_put_bcd2
         mov al, ':'
@@ -1589,34 +2119,12 @@ dlv_pad:
         call lcd_data
         mov al, rtc_sec
         call lcd_put_bcd2
-        mov al, ' '
-        call lcd_data
-        mov al, ' '
-        call lcd_data
-        mov al, '*'
-        call lcd_data
-        mov al, 'P'
-        call lcd_data
-        mov al, 'I'
-        call lcd_data
-        mov al, 'N'
-        call lcd_data
-        mov al, ' '
-        call lcd_data
-        mov al, '#'
-        call lcd_data
-        mov al, 'S'
-        call lcd_data
-        mov al, 'T'
-        call lcd_data
-        mov al, 'A'
-        call lcd_data
-        mov al, 'T'
-        call lcd_data
+        mov si, offset str_live_ft
+        call lcd_puts
         jmp lcd_done
 
 dlv_stat:
-        ; pages 1..3: "ux:+xx/+xx mm:ss    " (20 chars padded)
+        ; pages 1..3 (20 chars): "Ux:+xxC/+xxC MM:SS  " (or "Ux:---C/---C MM:SS  ")
         mov bl, stat_page
         dec bl
         xor bh, bh
@@ -1629,16 +2137,25 @@ dlv_stat:
         mov al, ':'
         call lcd_data
 
+        ; guard pre-first-ADC state: show dashes until adc_valid[bx] is set
+        cmp adc_valid[bx], 0
+        je dlv_no_samp
         mov al, tmin[bx]
         call lcd_put_temp
         mov al, '/'
         call lcd_data
         mov al, tmax[bx]
         call lcd_put_temp
+        jmp dlv_stat_tm
+dlv_no_samp:
+        mov si, offset str_nosamp
+        call lcd_puts
+
+dlv_stat_tm:
         mov al, ' '
         call lcd_data
 
-        ; convert out_secs[bx*2] -> mm:ss
+        ; convert out_secs[bx*2] -> MM:SS
         mov si, bx
         shl si, 1
         mov ax, out_secs[si]
@@ -1652,7 +2169,6 @@ dlv_stat:
         call lcd_put_dec2
         mov al, ' '
         call lcd_data
-        mov al, ' '
         call lcd_data
 
 lcd_done:

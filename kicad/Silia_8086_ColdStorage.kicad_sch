@@ -6,8 +6,8 @@
 	(paper "A0")
 	(title_block
 		(title "Silia 8086 3-Unit Cold-Storage Monitor & Alarm")
-		(date "2026-11-24")
-		(rev "v4.0")
+		(date "2026-11-26")
+		(rev "v4.1")
 		(company "Group Silia (Montesiat, Silay, Castroverde) — USC CpE 3104")
 	)
 	(lib_symbols
@@ -10549,7 +10549,7 @@
 	)
 	(rectangle
 		(start 336.55 200.66)
-		(end 674.37 426.72)
+		(end 674.37 434.34)
 		(stroke
 			(width 0.254)
 			(type dash)
@@ -10597,7 +10597,7 @@
 	)
 	(rectangle
 		(start 934.72 15.24)
-		(end 1168.4 396.24)
+		(end 1168.4 558.8)
 		(stroke
 			(width 0.254)
 			(type dash)
@@ -10630,7 +10630,7 @@
 		)
 		(uuid "14573ed0-83fb-4fd0-99d7-50af8aefff0a")
 	)
-	(text "   * LED-IR absent -> SW_DOOR1..3 + 10k -> LM393; BZ1 = SOUNDER (5V, 2kHz)."
+	(text "   * Door sensors: SW_DOOR1..3 + 10k -> LM393; BZ1 = SOUNDER (5V, 2.0 kHz BUZZ_GATE); U22 MOT=GND (Intel)."
 		(exclude_from_sim no)
 		(at 944.88 375.92 0)
 		(effects
@@ -10768,7 +10768,7 @@
 		)
 		(uuid "66e6ebdc-3328-4ace-809a-23888cd5c44f")
 	)
-	(text "     * Shared VREF/2 = 1.280 V (R5 5.6k + RV1 2k) -> 1.0 C/LSB on all 3"
+	(text "     * Shared VREF/2 = 1.280 V (R5 5.6k + RV1 2k; PCB requires LM358 buffer) -> 1.0 C/LSB"
 		(exclude_from_sim no)
 		(at 944.88 299.72 0)
 		(effects
@@ -10835,7 +10835,7 @@
 		)
 		(uuid "97cba366-2531-4675-917a-66a3bf597776")
 	)
-	(text "   * U10/U25 8255A RESET=GND (active-HIGH); CLK2 (2.5MHz) drives U14 8253A."
+	(text "   * U10/U25 RESET=GND (sim only); CLK2 (2.5 MHz) -> U14; LEDs R13-15/R21-23 = 1k; Q1-Q4 10k pull-downs."
 		(exclude_from_sim no)
 		(at 944.88 363.22 0)
 		(effects
@@ -10880,7 +10880,7 @@
 		)
 		(uuid "cff207ea-cb9d-4821-b264-bddd9c413937")
 	)
-	(text "     * U13C -VS lifted +1.40V (D4/D5 1N4148 + R4 18k); VIN- = +1.10V (3.9k/1.1k)"
+	(text "     * U13C (+12V, LM35/A/C): -VS +1.29V (D4/D5 + R_FRZ3 4.7k + R4 18k); VIN- = 0.984V (10k/2.45k)"
 		(exclude_from_sim no)
 		(at 944.88 287.02 0)
 		(effects
@@ -10891,7 +10891,7 @@
 		)
 		(uuid "db43d779-d687-4c9d-8774-7bbb99da5095")
 	)
-	(text "   UNIT 2 (Fresh Chiller) :  0 to +4 C  | U13B + U27 (B0H) | RL2 + LED5"
+	(text "   UNIT 2 (Fresh Chiller) : +1 to +4 C  | U13B + U27 (B0H) | RL2 + LED5 (LM35 +2C floor)"
 		(exclude_from_sim no)
 		(at 944.88 261.62 0)
 		(effects
@@ -10924,7 +10924,7 @@
 		)
 		(uuid "eb1aa87f-632e-4b5b-a28a-e6e5f2316531")
 	)
-	(text "   * i8086.DLL: CLOCK_EXT=0, CLOCK=5MHz -> internal clock (CLK=NC)."
+	(text "   * Clock: Simulated at 2 MHz (i8086.DLL CLOCK_EXT=0); target 5 MHz via 8284A (15 MHz XTAL, 2.5 MHz PCLK)."
 		(exclude_from_sim no)
 		(at 944.88 337.82 0)
 		(effects
@@ -14316,7 +14316,7 @@
 	)
 	(wire
 		(pts
-			(xy 194.31 288.29) (xy 199.39 288.29)
+			(xy 186.69 288.29) (xy 191.77 288.29)
 		)
 		(stroke
 			(width 0.2032)
@@ -14376,7 +14376,7 @@
 	)
 	(wire
 		(pts
-			(xy 457.2 372.11) (xy 462.28 372.11)
+			(xy 449.58 372.11) (xy 454.66 372.11)
 		)
 		(stroke
 			(width 0.2032)
@@ -14616,7 +14616,7 @@
 	)
 	(wire
 		(pts
-			(xy 457.2 414.02) (xy 462.28 414.02)
+			(xy 449.58 414.02) (xy 454.66 414.02)
 		)
 		(stroke
 			(width 0.2032)
@@ -15893,16 +15893,6 @@
 			(type default)
 		)
 		(uuid "5643f003-8146-455e-873d-d33ea3659eb5")
-	)
-	(wire
-		(pts
-			(xy 82.55 295.91) (xy 80.01 300.99)
-		)
-		(stroke
-			(width 0.2032)
-			(type default)
-		)
-		(uuid "564dd14a-6497-404c-8201-1de6050d54d7")
 	)
 	(wire
 		(pts
@@ -18156,7 +18146,7 @@
 	)
 	(wire
 		(pts
-			(xy 457.2 393.7) (xy 462.28 393.7)
+			(xy 449.58 393.7) (xy 454.66 393.7)
 		)
 		(stroke
 			(width 0.2032)
@@ -20123,16 +20113,6 @@
 			(type default)
 		)
 		(uuid "f000a3c6-232b-4992-9c32-c5ee7eb9249c")
-	)
-	(wire
-		(pts
-			(xy 82.55 295.91) (xy 80.01 300.99)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f0400c1d-9c9e-4027-b852-96bbfba21965")
 	)
 	(wire
 		(pts
@@ -25276,7 +25256,7 @@
 	)
 	(global_label "RLY2_CMD"
 		(shape input)
-		(at 457.2 393.7 180)
+		(at 449.58 393.7 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -25322,7 +25302,7 @@
 	)
 	(global_label "RLY1_CMD"
 		(shape input)
-		(at 457.2 372.11 180)
+		(at 449.58 372.11 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -25851,7 +25831,7 @@
 	)
 	(global_label "BUZZ_GATE"
 		(shape input)
-		(at 194.31 288.29 180)
+		(at 186.69 288.29 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -26518,7 +26498,7 @@
 	)
 	(global_label "RLY3_CMD"
 		(shape input)
-		(at 457.2 414.02 180)
+		(at 449.58 414.02 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -27344,7 +27324,7 @@
 				)
 			)
 		)
-		(property "Value" "LM35 (0..+4C)"
+		(property "Value" "LM35 (+1..+4C)"
 			(at 542.29 288.29 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -27725,7 +27705,7 @@
 	)
 	(symbol
 		(lib_id "Silia:RES_H")
-		(at 204.47 288.29 0)
+		(at 196.85 288.29 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -27735,7 +27715,7 @@
 		(dnp no)
 		(uuid "10dc2881-8755-442f-ba81-e35198591052")
 		(property "Reference" "R12"
-			(at 204.47 286.09 0)
+			(at 196.85 286.09 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -27746,7 +27726,7 @@
 			)
 		)
 		(property "Value" "1k"
-			(at 204.47 290.49 0)
+			(at 196.85 290.49 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -27756,7 +27736,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 204.47 288.29 0)
+			(at 196.85 288.29 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -27767,7 +27747,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 204.47 288.29 0)
+			(at 196.85 288.29 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -27778,7 +27758,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 204.47 288.29 0)
+			(at 196.85 288.29 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -30783,7 +30763,7 @@
 	)
 	(symbol
 		(lib_id "Silia:RES_H")
-		(at 467.36 393.7 0)
+		(at 459.74 393.7 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -30793,7 +30773,7 @@
 		(dnp no)
 		(uuid "2fbc6d5e-c12e-47e9-b17a-236801c3cd9e")
 		(property "Reference" "R1B"
-			(at 467.36 391.5 0)
+			(at 459.74 391.5 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -30804,7 +30784,7 @@
 			)
 		)
 		(property "Value" "1k"
-			(at 467.36 395.9 0)
+			(at 459.74 395.9 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -30814,7 +30794,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 467.36 393.7 0)
+			(at 459.74 393.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -30825,7 +30805,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 467.36 393.7 0)
+			(at 459.74 393.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -30836,7 +30816,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 467.36 393.7 0)
+			(at 459.74 393.7 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -31247,7 +31227,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "1k"
 			(at 461.01 242.23 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -32271,7 +32251,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "1k"
 			(at 461.01 252.39 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -34293,7 +34273,7 @@
 	)
 	(symbol
 		(lib_id "Silia:RES_H")
-		(at 467.36 414.02 0)
+		(at 459.74 414.02 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -34303,7 +34283,7 @@
 		(dnp no)
 		(uuid "5ba7a51e-bd48-45eb-a107-be9b7d8c3e39")
 		(property "Reference" "R1C"
-			(at 467.36 411.82 0)
+			(at 459.74 411.82 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -34314,7 +34294,7 @@
 			)
 		)
 		(property "Value" "1k"
-			(at 467.36 416.22 0)
+			(at 459.74 416.22 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -34324,7 +34304,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 467.36 414.02 0)
+			(at 459.74 414.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -34335,7 +34315,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 467.36 414.02 0)
+			(at 459.74 414.02 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -34346,7 +34326,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 467.36 414.02 0)
+			(at 459.74 414.02 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -36520,7 +36500,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "1k"
 			(at 147.32 303.19 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -36658,7 +36638,7 @@
 	)
 	(symbol
 		(lib_id "Silia:RES_H")
-		(at 467.36 372.11 0)
+		(at 459.74 372.11 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -36668,7 +36648,7 @@
 		(dnp no)
 		(uuid "82da999f-5d54-4386-9b64-f6529ca6c89f")
 		(property "Reference" "R1A"
-			(at 467.36 369.91 0)
+			(at 459.74 369.91 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -36679,7 +36659,7 @@
 			)
 		)
 		(property "Value" "1k"
-			(at 467.36 374.31 0)
+			(at 459.74 374.31 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -36689,7 +36669,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 467.36 372.11 0)
+			(at 459.74 372.11 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -36700,7 +36680,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 467.36 372.11 0)
+			(at 459.74 372.11 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -36711,7 +36691,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 467.36 372.11 0)
+			(at 459.74 372.11 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -38893,7 +38873,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "1k"
 			(at 461.01 262.55 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -39754,7 +39734,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "3.9k"
+		(property "Value" "10k"
 			(at 566.46 351.52 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -39912,7 +39892,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "1.1k"
+		(property "Value" "2.45k"
 			(at 566.46 361.68 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -40279,7 +40259,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "1k"
 			(at 147.32 282.87 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -43725,7 +43705,7 @@
 				)
 			)
 		)
-		(property "Value" "8086 (5MHz Min Mode)"
+		(property "Value" "8086 (5MHz Target / 2MHz Sim)"
 			(at 63.5 78.74 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -44128,7 +44108,7 @@
 				)
 			)
 		)
-		(property "Value" "330R"
+		(property "Value" "1k"
 			(at 147.32 293.03 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -44342,7 +44322,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Silia:+5V")
+		(lib_id "Silia:+12V")
 		(at 509.27 326.39 0)
 		(unit 1)
 		(body_style 1)
@@ -44363,7 +44343,7 @@
 				)
 			)
 		)
-		(property "Value" "+5V"
+		(property "Value" "+12V"
 			(at 509.27 322.83 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -45488,6 +45468,998 @@
 				)
 			)
 		)
+	)
+	(symbol
+		(lib_id "Silia:RES_V")
+		(at 495.3 323.85 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0d690b3e-8396-4100-ab69-cf6ce4d75af3")
+		(property "Reference" "R_FRZ3"
+			(at 492.76 323.05 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+					(bold yes)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "4.7k"
+			(at 492.76 324.85 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 495.3 323.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 495.3 323.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 495.3 323.85 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "1ecaca47-5203-4d76-9ef3-fefe9b19539b")
+		)
+		(pin "2"
+			(uuid "ef1453ac-ad7f-429f-8619-f75b1cda8b23")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "R_FRZ3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Silia:+5V")
+		(at 495.3 318.77 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "43c509b4-3245-4f92-9577-063181bf1fde")
+		(property "Reference" "#PWR121"
+			(at 495.3 318.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+5V"
+			(at 495.3 315.21 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+					(bold yes)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 495.3 318.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 495.3 318.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 495.3 318.77 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0d4086bb-a63c-4a12-b463-ac89c7516e6f")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "#PWR121")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 495.3 328.93) (xy 509.27 328.93)
+		)
+		(stroke
+			(width 0.2032)
+			(type default)
+		)
+		(uuid "136be66f-56ad-4ce0-94c4-e1d12c2ad7f9")
+	)
+	(junction
+		(at 509.27 328.93)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "0cb699eb-c4f0-42c1-9643-14cad942e49d")
+	)
+	(wire
+		(pts
+			(xy 464.82 372.11) (xy 472.44 372.11)
+		)
+		(stroke
+			(width 0.2032)
+			(type default)
+		)
+		(uuid "574b3ac9-8060-4efe-86eb-54453dfd4472")
+	)
+	(junction
+		(at 469.9 372.11)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "af57df44-5452-4ea2-bf42-bb7f66bf8a78")
+	)
+	(symbol
+		(lib_id "Silia:RES_V")
+		(at 469.9 377.19 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0b8dfe73-02e6-4635-83b2-a6072dbbabfe")
+		(property "Reference" "R_PD1"
+			(at 467.36 376.39 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+					(bold yes)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "10k"
+			(at 467.36 378.19 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 469.9 377.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 469.9 377.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 469.9 377.19 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "ec7b7778-c897-437b-8f24-fb42568b2953")
+		)
+		(pin "2"
+			(uuid "7a8f28ce-cd9b-491e-8349-aee5ced12e04")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "R_PD1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Silia:GND")
+		(at 469.9 382.27 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "1c17819a-cb86-4da9-b5f9-e048faf3db65")
+		(property "Reference" "#PWR122"
+			(at 469.9 382.27 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 469.9 386.08 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+					(bold yes)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 469.9 382.27 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 469.9 382.27 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 469.9 382.27 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0283e8e7-1b3b-420f-ba5d-b0ba0bb8c248")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "#PWR122")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 464.82 393.7) (xy 472.44 393.7)
+		)
+		(stroke
+			(width 0.2032)
+			(type default)
+		)
+		(uuid "49d71fd4-6ee3-495c-8e79-f6e493d06147")
+	)
+	(junction
+		(at 469.9 393.7)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "ed38f284-55eb-4b72-9900-cdf233bd34ea")
+	)
+	(symbol
+		(lib_id "Silia:RES_V")
+		(at 469.9 398.78 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "be0b2e36-fe89-424c-825e-e1570d6c6e6b")
+		(property "Reference" "R_PD2"
+			(at 467.36 397.98 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+					(bold yes)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "10k"
+			(at 467.36 399.78 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 469.9 398.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 469.9 398.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 469.9 398.78 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "547f5102-5112-4f7f-b73b-8cdbd55e3b37")
+		)
+		(pin "2"
+			(uuid "c21e7c14-ec39-4af8-a61a-b1b7889c0d00")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "R_PD2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Silia:GND")
+		(at 469.9 403.86 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "5a242f3c-72d8-4ecf-967c-af0f9adabe18")
+		(property "Reference" "#PWR123"
+			(at 469.9 403.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 469.9 407.67 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+					(bold yes)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 469.9 403.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 469.9 403.86 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 469.9 403.86 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "d999b75c-88d3-4676-a991-71bcfc7fcc90")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "#PWR123")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 464.82 414.02) (xy 472.44 414.02)
+		)
+		(stroke
+			(width 0.2032)
+			(type default)
+		)
+		(uuid "97a08120-5605-4970-82ec-082953481491")
+	)
+	(junction
+		(at 469.9 414.02)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "5a7bdc1f-cafa-4f73-911c-3f8890c35ef1")
+	)
+	(symbol
+		(lib_id "Silia:RES_V")
+		(at 469.9 419.1 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "74f9e479-0c82-4f9b-89b7-06e57487cd5d")
+		(property "Reference" "R_PD3"
+			(at 467.36 418.3 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+					(bold yes)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "10k"
+			(at 467.36 420.1 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 469.9 419.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 469.9 419.1 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 469.9 419.1 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "eaaaaaef-76e1-4176-a996-e1e2669b3b7f")
+		)
+		(pin "2"
+			(uuid "6465e7e7-7735-43e1-94e6-5eda7cf4808c")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "R_PD3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Silia:GND")
+		(at 469.9 424.18 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "99381e90-9c53-49c5-bd3b-389057144810")
+		(property "Reference" "#PWR124"
+			(at 469.9 424.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 469.9 427.99 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+					(bold yes)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 469.9 424.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 469.9 424.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 469.9 424.18 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "b9d30441-6fa2-4cb5-9ef5-a03f36e04b85")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "#PWR124")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(wire
+		(pts
+			(xy 201.93 288.29) (xy 209.55 288.29)
+		)
+		(stroke
+			(width 0.2032)
+			(type default)
+		)
+		(uuid "39167e08-122e-4976-810b-6dd61c1286bb")
+	)
+	(junction
+		(at 207.01 288.29)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "5159b0cd-974d-4841-870c-2ea0b8f662b3")
+	)
+	(symbol
+		(lib_id "Silia:RES_V")
+		(at 207.01 293.37 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "836c78e8-ab84-4be9-9f4a-6b91ce6d3de9")
+		(property "Reference" "R_PD4"
+			(at 204.47 292.57 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+					(bold yes)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "10k"
+			(at 204.47 294.37 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 207.01 293.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 207.01 293.37 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 207.01 293.37 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0fba292e-4695-476b-a2f5-cdb483ee66e6")
+		)
+		(pin "2"
+			(uuid "e872fc26-6551-4f56-bfa5-128e5cd0b61f")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "R_PD4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Silia:GND")
+		(at 207.01 298.45 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "2c2f01f6-5c91-4348-bd4d-8658aa398e2b")
+		(property "Reference" "#PWR125"
+			(at 207.01 298.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 207.01 302.26 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 0.889 0.889)
+					(bold yes)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 207.01 298.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 207.01 298.45 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 207.01 298.45 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "32de5e6c-6d79-4e37-bb52-3ae7da2a8e09")
+		)
+		(instances
+			(project "Silia_8086_ColdStorage"
+				(path "/ea3a792c-ea30-4b4c-80b0-51e5755ab548"
+					(reference "#PWR125")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(text "5. REAL-PCB / TARGET HARDWARE ADDITIONS (OMITTED FOR SIM PARITY):"
+		(exclude_from_sim no)
+		(at 944.88 401.32 0)
+		(effects
+			(font
+				(size 1.78 1.78)
+				(bold yes)
+			)
+			(justify left)
+		)
+		(uuid "d7ece4d0-983d-4073-8487-409868bf485c")
+	)
+	(text "   * Clock/Reset: add 8284A + 15 MHz XTAL (5 MHz CLK -> U1.19, 2.5 MHz PCLK -> U14) + POR reset -> U1/U10/U25/U22."
+		(exclude_from_sim no)
+		(at 944.88 416.56 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "021b2b39-03bb-40cc-b3a0-e8085b3d6cc4")
+	)
+	(text "   * VREF/2 Buffer: buffer VREF_1V28 with LM358 unity-gain op-amp (real ADC0804 pin 9 ~1.1k collapses passive divider)."
+		(exclude_from_sim no)
+		(at 944.88 429.26 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "e2232d07-cd4f-49a7-895a-421a353c36d1")
+	)
+	(text "   * Buzzer Q4 Driver: 74LS08 U24.3 I_OH max -0.4 mA; use logic MOSFET (2N7000) or 74HCT08/Darlington stage on PCB."
+		(exclude_from_sim no)
+		(at 944.88 441.96 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "923b46bf-259e-4ae3-ab97-3cead14d1435")
+	)
+	(text "   * Sensors: fit LM35/LM35A/LM35C (not LM35D) for -20..0 C freezer (U13C on +12V); add 75R + 1uF RC cable dampers."
+		(exclude_from_sim no)
+		(at 944.88 454.66 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "be276869-f2ba-4bd3-ab7c-bdc195e1310f")
+	)
+	(text "   * Power/Decoupling: add 0.1 uF bypass caps per IC, 100 uF bulk caps on +5V/+12V, polarity protection & fuse."
+		(exclude_from_sim no)
+		(at 944.88 467.36 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "ebee6241-daf2-4af5-b9bf-304dcbb51999")
+	)
+	(text "   * Relays & Control: wire RL1-RL3 COM/NO/NC to rated screw terminals; firmware ON >= Thigh, OFF <= max(Thigh-2, Tlow)."
+		(exclude_from_sim no)
+		(at 944.88 480.06 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "04fdc013-10a1-48b8-b595-4af66c9c8572")
+	)
+	(text "   * LCD & Doors: 16-pin LCD header (backlight + V0 trimmer near GND); separate 2.5 V divider for LM393 door refs."
+		(exclude_from_sim no)
+		(at 944.88 492.76 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "8d950372-707b-4b4a-b70b-6d8a87c9bcc9")
+	)
+	(text "   * Layout/BOM: assign footprints before PCB layout; specify 8253-5/8254 (>=2.5 MHz) & <=200 ns EPROM/SRAM; U13B +1..+4C."
+		(exclude_from_sim no)
+		(at 944.88 505.46 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "726861d9-8359-42cc-85de-65f99a2e505d")
+	)
+	(text "   * Designators: KiCad refs match Systems Design v3; see Systems Design v3 Annex A for Proteus map."
+		(exclude_from_sim no)
+		(at 944.88 518.16 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "c8a78655-9730-4b89-bb1e-ba73a9aa9d40")
+	)
+	(text "   * Rev v4.1 (2026-11-26): C-02/D-04 (R_FRZ3 4.7k, 10k/2.45k, U13C +12V), M-08 (R_PD1..4 10k), D-09 (LEDs 1k)."
+		(exclude_from_sim no)
+		(at 944.88 535.94 0)
+		(effects
+			(font
+				(size 1.52 1.52)
+			)
+			(justify left)
+		)
+		(uuid "6fd70e63-13c7-4546-9f89-293a4808c353")
 	)
 	(sheet_instances
 		(path "/"
